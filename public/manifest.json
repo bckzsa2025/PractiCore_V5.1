@@ -1,0 +1,44 @@
+
+{
+  "name": "PractiZone - Dr. Beate Setzer",
+  "short_name": "Dr. Setzer",
+  "id": "dr-setzer-practizone-v1",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#1F6E6C",
+  "scope": "/",
+  "orientation": "portrait-primary",
+  "description": "Offline-capable Practice Management System for Dr. Beate Setzer. Manage appointments, patients, and AI consultations securely.",
+  "categories": ["medical", "productivity", "health"],
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3774/3774299.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3774/3774299.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Book Appointment",
+      "short_name": "Book",
+      "description": "Schedule a new consultation",
+      "url": "/?action=book",
+      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/3652/3652191.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Emergency",
+      "short_name": "Emergency",
+      "description": "Call Emergency Services",
+      "url": "/#contact",
+      "icons": [{ "src": "https://cdn-icons-png.flaticon.com/512/2991/2991152.png", "sizes": "192x192" }]
+    }
+  ]
+}

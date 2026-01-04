@@ -1,0 +1,293 @@
+openapi: 3.1.0
+info:
+  title: PractiZone PracticeManager API
+  description: Backend API for PractiZone™©. Supports virtual mock mode and production.
+  version: '1.2.0'
+servers:
+  - url: https://api.practizone.local
+    description: Production Server
+  - url: http://localhost:3000
+    description: Local Virtual Backend
+paths:
+  /auth/login:
+    post:
+      summary: Authenticate user
+      operationId: loginUser
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /auth/register:
+    post:
+      summary: Register new patient
+      operationId: registerUser
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistration'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /appointments:
+    get:
+      summary: List appointments
+      operationId: getAppointments
+      tags: [Appointments]
+      parameters:
+        - name: patientId
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+    post:
+      summary: Create appointment
+      operationId: createAppointment
+      tags: [Appointments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentCreate'
+      responses:
+        '201':
+          description: Appointment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+
+  /patients/{id}:
+    get:
+      summary: Get patient profile
+      operationId: getPatient
+      tags: [Patients]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Patient profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    put:
+      summary: Update patient profile
+      operationId: updatePatient
+      tags: [Patients]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+  /ai/chat:
+    post:
+      summary: Send message to AI assistant
+      operationId: chatAI
+      tags: [AI]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message: { type: string }
+      responses:
+        '200':
+          description: AI Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reply: { type: string }
+                  sources: 
+                    type: array
+                    items: { $ref: '#/components/schemas/Source' }
+
+  /settings/ai:
+    get:
+      summary: Get AI System Configuration
+      operationId: getAISettings
+      tags: [Settings]
+      responses:
+        '200':
+          description: Current settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AISettings'
+    post:
+      summary: Update AI System Configuration
+      operationId: saveAISettings
+      tags: [Settings]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AISettings'
+      responses:
+        '200':
+          description: Settings saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AISettings'
+
+  /integrations/twilio:
+    get:
+      summary: Get Twilio Configuration
+      tags: [Settings]
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TwilioConfig'
+    post:
+      summary: Update Twilio Configuration
+      tags: [Settings]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TwilioConfig'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TwilioConfig'
+
+  /webhooks/twilio/voice:
+    post:
+      summary: Handle incoming voice call
+      tags: [Webhooks]
+      responses:
+        '200':
+          description: TwiML XML
+          content:
+            application/xml:
+              schema: { type: string }
+
+  /webhooks/twilio/sms:
+    post:
+      summary: Handle incoming SMS
+      tags: [Webhooks]
+      responses:
+        '200':
+          description: TwiML XML
+          content:
+            application/xml:
+              schema: { type: string }
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [patient, staff, admin, developer] }
+        phone: { type: string }
+    UserRegistration:
+      type: object
+      required: [email, password, name]
+      properties:
+        email: { type: string }
+        password: { type: string }
+        name: { type: string }
+        phone: { type: string }
+    Appointment:
+      type: object
+      properties:
+        id: { type: string }
+        patientId: { type: string }
+        doctorId: { type: string }
+        serviceId: { type: string }
+        date: { type: string, format: date-time }
+        status: { type: string }
+        type: { type: string }
+    AppointmentCreate:
+      type: object
+      properties:
+        patientId: { type: string }
+        doctorId: { type: string }
+        serviceId: { type: string }
+        start: { type: string }
+        reason: { type: string }
+        contactMethod: { type: string }
+    Source:
+      type: object
+      properties:
+        title: { type: string }
+        uri: { type: string }
+    AISettings:
+      type: object
+      properties:
+        provider: { type: string, enum: [google, openai, custom] }
+        apiKey: { type: string }
+        endpoint: { type: string }
+        models:
+          type: object
+          properties:
+            chat: { type: string }
+            image: { type: string }
+            video: { type: string }
+            audio: { type: string }
+    TwilioConfig:
+      type: object
+      properties:
+        accountSid: { type: string }
+        authToken: { type: string }
+        phoneNumber: { type: string }
+        webhookUrl: { type: string }
