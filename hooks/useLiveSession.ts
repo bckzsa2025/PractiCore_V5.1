@@ -76,6 +76,7 @@ export const useLiveSession = () => {
           const response = await chatWithAi(
               [{ role: 'assistant', content: 'I am your voice assistant.', id: 'sys', timestamp: Date.now() }], 
               transcript,
+              null,
               "You are a helpful medical voice assistant. Keep responses short, concise, and conversational (1-2 sentences)."
           );
 

@@ -1,6 +1,6 @@
 
-const CACHE_NAME = 'practizone-v5-android-master';
-const RUNTIME_CACHE = 'practizone-runtime-v5';
+const CACHE_NAME = 'medicore-v1-android-master';
+const RUNTIME_CACHE = 'medicore-runtime-v1';
 
 // Core assets to pre-cache immediately for offline shell
 const PRECACHE_URLS = [

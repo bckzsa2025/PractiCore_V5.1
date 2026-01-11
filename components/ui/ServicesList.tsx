@@ -1,19 +1,27 @@
 
-import React, { useState } from 'react';
-import { Activity, ChevronRight, Clock, ShieldCheck, Stethoscope, Heart, Syringe, Video } from 'lucide-react';
-import { SERVICES } from '../../services/geminiService';
+import React, { useState, useEffect } from 'react';
+import { ChevronRight, Clock, ShieldCheck, Stethoscope, Heart, Syringe, Video } from 'lucide-react';
+import { apiClient } from '../../libs/api';
+import { Service, PracticeConfig } from '../../types';
 
 const ServicesList: React.FC = () => {
+  const [services, setServices] = useState<Service[]>([]);
+  const [config, setConfig] = useState<PracticeConfig | null>(null);
   const [activeCategory, setActiveCategory] = useState('All');
   
-  // Extract unique categories
-  const categories = ['All', ...Array.from(new Set(SERVICES.map(s => s.category)))];
+  useEffect(() => {
+    apiClient.services.list().then(setServices);
+    apiClient.practice.get().then(setConfig);
+    window.addEventListener('practice-config-update', () => apiClient.practice.get().then(setConfig));
+  }, []);
+
+  // Fix: Explicitly type the Set as Set<string> to ensure the resulting array is strictly typed as string[]
+  const categories: string[] = ['All', ...Array.from(new Set<string>(services.map(s => s.category)))];
 
   const filteredServices = activeCategory === 'All' 
-    ? SERVICES 
-    : SERVICES.filter(s => s.category === activeCategory);
+    ? services 
+    : services.filter(s => s.category === activeCategory);
 
-  // Helper for category icon
   const getCategoryIcon = (cat: string) => {
     switch(cat) {
         case 'Pediatrics': return <Heart className="w-4 h-4" />;
@@ -23,18 +31,19 @@ const ServicesList: React.FC = () => {
     }
   };
 
+  if (!config) return null;
+
   return (
     <section id="services" className="py-20 bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
          <div className="text-center mb-12 animate-in slide-in-from-bottom-8 duration-700">
-           <h2 className="text-3xl font-display font-bold text-slate-900 mb-4">Our Medical Services</h2>
+           <h2 className="text-3xl font-display font-bold text-slate-900 mb-4">Medical Service Catalog</h2>
            <div className="w-16 h-1 bg-primary mx-auto rounded-full"></div>
            <p className="mt-4 text-slate-500 max-w-2xl mx-auto">
-             Comprehensive primary care tailored to your family's needs. Browse our service categories below.
+             Tailored care for your family. View our available services and transparent pricing below.
            </p>
          </div>
 
-         {/* Category Filter */}
          <div className="flex flex-wrap justify-center gap-2 mb-12">
             {categories.map(cat => (
                 <button
@@ -48,7 +57,6 @@ const ServicesList: React.FC = () => {
             ))}
          </div>
 
-         {/* Services Grid */}
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 min-h-[400px]">
            {filteredServices.map((service, index) => (
              <div 
@@ -79,8 +87,8 @@ const ServicesList: React.FC = () => {
                
                <div className="flex items-center justify-between mt-auto pt-6 border-t border-slate-50">
                   <div className="flex flex-col">
-                    <span className="text-[10px] text-slate-400 font-bold uppercase">Starting from</span>
-                    <span className="text-lg font-bold text-slate-900">R {service.price}</span>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase">Estimated Fee</span>
+                    <span className="text-lg font-bold text-slate-900">{config.currency} {service.price}</span>
                   </div>
                   <button className="w-10 h-10 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-primary hover:text-white hover:border-primary transition-all">
                     <ChevronRight className="w-5 h-5" />
@@ -90,20 +98,14 @@ const ServicesList: React.FC = () => {
            ))}
          </div>
 
-         {filteredServices.length === 0 && (
-             <div className="text-center py-20 text-slate-400">
-                 <p>No services found in this category.</p>
-             </div>
-         )}
-
          <div className="mt-16 bg-white rounded-2xl p-8 border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600">
                     <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
-                    <h4 className="font-bold text-slate-800">Medical Aid Accepted</h4>
-                    <p className="text-sm text-slate-500">Discovery, Bonitas, Fedhealth, and more.</p>
+                    <h4 className="font-bold text-slate-800">Medical Aid Ready</h4>
+                    <p className="text-sm text-slate-500">We accept major health providers.</p>
                 </div>
             </div>
             <div className="h-8 w-px bg-slate-200 hidden md:block"></div>
@@ -112,12 +114,12 @@ const ServicesList: React.FC = () => {
                     <Clock className="w-6 h-6" />
                 </div>
                 <div>
-                    <h4 className="font-bold text-slate-800">After Hours Care</h4>
-                    <p className="text-sm text-slate-500">Available for registered patients.</p>
+                    <h4 className="font-bold text-slate-800">Support Access</h4>
+                    <p className="text-sm text-slate-500">Available during standard hours.</p>
                 </div>
             </div>
             <button className="px-6 py-3 bg-slate-900 text-white font-bold rounded-lg hover:bg-slate-800 transition-colors">
-                View Full Rate Card
+                Download Schedule
             </button>
          </div>
       </div>

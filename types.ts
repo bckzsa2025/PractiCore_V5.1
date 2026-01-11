@@ -23,10 +23,22 @@ export interface User {
   };
 }
 
+export interface PracticeConfig {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    workingHours: string;
+    emergencyPhone: string;
+    aiName: string;
+    aiBio: string;
+    currency: string;
+}
+
 export interface Supplier {
     id: string;
     name: string;
-    category: string; // e.g., 'Medical Supplies', 'Pharma', 'IT'
+    category: string; 
     contactPerson: string;
     email: string;
     phone: string;
@@ -35,8 +47,8 @@ export interface Supplier {
 export interface Service {
   id: string;
   name: string;
-  category: string; // Added Category field
-  duration: number; // minutes
+  category: string; 
+  duration: number; 
   price: number;
   description: string;
 }
@@ -46,7 +58,7 @@ export interface Doctor {
   name: string;
   specialty: string;
   image?: string;
-  bio?: string; // Added for individual profiles
+  bio?: string; 
 }
 
 export interface Appointment {
@@ -54,7 +66,7 @@ export interface Appointment {
   patientId: string;
   doctorId: string;
   serviceId: string;
-  date: string; // ISO string
+  date: string; 
   status: 'confirmed' | 'pending' | 'completed' | 'cancelled';
   notes?: string;
   type: 'in-person' | 'telehealth';
@@ -86,7 +98,7 @@ export interface AIMessage {
     timestamp: number;
     attachments?: Attachment[];
     sources?: Source[];
-    reasoning_details?: any; // For OpenRouter/Reasoning models
+    reasoning_details?: any; 
 }
 
 export interface TwilioConfig {
@@ -97,10 +109,11 @@ export interface TwilioConfig {
 }
 
 export interface AISettings {
-  provider: 'openrouter' | 'custom';
+  provider: 'openrouter' | 'custom' | 'google';
   apiKey: string;
-  endpoint: string; // Required for custom providers
+  endpoint: string; 
   models: {
     chat: string;
   };
+  systemInstruction?: string;
 }

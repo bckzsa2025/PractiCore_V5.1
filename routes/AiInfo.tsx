@@ -23,14 +23,14 @@ const AiInfo: React.FC<AiInfoProps> = ({ onLoginClick, onHomeClick, onLegalClick
          
          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs font-bold uppercase tracking-wider mb-6 border border-cyan-500/20">
-               <Bot className="w-4 h-4" /> Powered by Nurse🧠Beate™
+               <Bot className="w-4 h-4" /> Powered by Nurse Betty
             </div>
             <h1 className="text-4xl md:text-6xl font-display font-bold mb-6">
                Medicine Re-Imagined <br/> with <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Intelligence</span>
             </h1>
             <p className="text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
-               Dr. Setzer’s practice integrates advanced AI to assist with administration, 
-               patient education, and triage—giving the doctor more time to focus on 
+               MediCore integrates advanced AI to assist with administration, 
+               patient education, and triage—giving our doctors more time to focus on 
                what matters: <strong>You.</strong>
             </p>
          </div>
@@ -46,8 +46,8 @@ const AiInfo: React.FC<AiInfoProps> = ({ onLoginClick, onHomeClick, onLegalClick
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 mb-3">Safety First</h3>
                   <p className="text-slate-600 text-sm leading-relaxed">
-                     The AI is a "Decision Support Tool". It does not diagnose or prescribe. 
-                     Every clinical decision is reviewed and finalized by Dr. Setzer personally.
+                     Nurse Betty is a "Decision Support Tool". It does not diagnose or prescribe. 
+                     Every clinical decision is reviewed and finalized by a human doctor personally.
                   </p>
                </div>
                <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 hover:border-cyan-200 transition-all">
@@ -66,7 +66,7 @@ const AiInfo: React.FC<AiInfoProps> = ({ onLoginClick, onHomeClick, onLegalClick
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 mb-3">Instant Access</h3>
                   <p className="text-slate-600 text-sm leading-relaxed">
-                     No more waiting on hold. Our AI Voice Agent can handle bookings, 
+                     No more waiting on hold. Nurse Betty can handle bookings, 
                      FAQs, and triage 24/7, ensuring you get help when you need it.
                   </p>
                </div>
@@ -79,7 +79,7 @@ const AiInfo: React.FC<AiInfoProps> = ({ onLoginClick, onHomeClick, onLegalClick
          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col lg:flex-row items-center gap-16">
                <div className="flex-1 space-y-8">
-                  <h2 className="text-3xl font-display font-bold text-slate-900">What can Nurse🧠Beate™ do?</h2>
+                  <h2 className="text-3xl font-display font-bold text-slate-900">What can Nurse Betty do?</h2>
                   <div className="space-y-4">
                      {[
                         "Schedule and manage appointments in real-time.",

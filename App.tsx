@@ -27,7 +27,7 @@ const App: React.FC = () => {
 
   // Check initial consent status & PWA install event
   useEffect(() => {
-    const consent = localStorage.getItem('dr_setzer_consent_v1.0'); // Updated to check versioned key
+    const consent = localStorage.getItem('medicore_consent_v1.0'); // Updated to check versioned key
     if (consent) setHasConsented(true);
 
     const handleBeforeInstallPrompt = (e: any) => {
@@ -83,7 +83,7 @@ const App: React.FC = () => {
                       <Download className="w-4 h-4" />
                   </div>
                   <div>
-                      <p className="font-bold">Install PractiZone App</p>
+                      <p className="font-bold">Install MediCore App</p>
                       <p className="text-xs opacity-90">Work offline and access faster.</p>
                   </div>
               </div>

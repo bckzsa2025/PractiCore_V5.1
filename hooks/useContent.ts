@@ -16,11 +16,13 @@ export type ContentKey =
     | 'admin_logo';
 
 const DEFAULTS: Record<ContentKey, string> = {
-    hero_image: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&q=80&w=1000&h=800',
-    about_team_1: '/about_01.jpg', 
-    about_team_2: '/about_02.jpg', 
-    about_team_3: '/about_03.jpg', 
-    about_team_4: '/about_04.jpg', 
+    // Generic Medical Facility / Reception
+    hero_image: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=1000&h=800',
+    // Generic Doctor / Staff images
+    about_team_1: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=400&h=400', 
+    about_team_2: 'https://images.unsplash.com/photo-1516574187841-69301976e495?auto=format&fit=crop&q=80&w=400&h=400', 
+    about_team_3: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&q=80&w=400&h=400', 
+    about_team_4: 'https://images.unsplash.com/photo-1584982751601-97dcc096657c?auto=format&fit=crop&q=80&w=400&h=400', 
     admin_logo: '' 
 };
 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Brain, Cpu, Sparkles } from 'lucide-react';
+import { Brain, Cpu, Sparkles, Code2 } from 'lucide-react';
 
 interface BadgeProps {
   className?: string;
@@ -38,19 +38,21 @@ export const SaILabsBadge: React.FC<BadgeProps> = ({ className = "", theme = 'li
         {/* Text Block */}
         <div className="flex flex-col items-start leading-none">
           <span className={`font-display font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-blue-600 ${s.text}`}>
-            SA-iLabs™®
+            SA-iLabs™
           </span>
           <span className={`${s.slogan} font-bold uppercase tracking-[0.2em] ${isDark ? 'text-slate-400' : 'text-slate-500'} group-hover:text-cyan-600 transition-colors`}>
-            Re-Imagining Intelligence
+            Developer Agency
           </span>
         </div>
       </div>
       
       {/* Developer Credit */}
-      <div className={`flex items-center gap-1.5 mt-1 border-t ${isDark ? 'border-slate-700' : 'border-slate-200'} pt-1 px-4`}>
-        <span className={`${s.dev} ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Developed by</span>
-        <span className={`${s.dev} font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'} flex items-center gap-1`}>
-           Christo Botha <Sparkles className="w-2 h-2 text-amber-400" />
+      <div className={`flex flex-col items-center mt-1 border-t ${isDark ? 'border-slate-700' : 'border-slate-200'} pt-1 px-4`}>
+        <span className={`${s.dev} font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'} flex items-center gap-1 uppercase tracking-wide`}>
+           <Code2 className="w-2 h-2 text-primary" /> Architect: Christo Botha
+        </span>
+        <span className={`${s.dev} text-[8px] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
+            Whitelabel Medical Systems © 2025
         </span>
       </div>
     </div>

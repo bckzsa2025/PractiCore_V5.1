@@ -1,165 +1,278 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
-import { AIMessage, AISettings } from "../types";
+import { AIMessage, AISettings, Attachment } from "../types";
+import { apiClient } from "../libs/api";
+import { GoogleGenAI, FunctionDeclaration, Type } from "@google/genai";
+import { generateEmbedding as generateEmbeddingUtil } from "../libs/vectorEngine";
 
-/**
- * Brand New OpenRouter API Key provided by user.
- */
-const FALLBACK_OPENROUTER_KEY = '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';
+// ---------------------------------------------------------------------------
+// CONFIGURATION & INIT
+// ---------------------------------------------------------------------------
 
-// Default configuration with the requested DeepSeek model
-const DEFAULT_SETTINGS: AISettings = {
-    provider: 'openrouter',
-    apiKey: '', 
-    endpoint: 'https://openrouter.ai/api/v1',
-    models: {
-        chat: 'nex-agi/deepseek-v3.1-nex-n1:free', 
-    }
+// Fallback for development if process.env is not hydrated by the build system
+const API_KEY = process.env.API_KEY || (import.meta as any).env?.VITE_GOOGLE_API_KEY || '';
+
+export const getEffectiveApiKey = (apiKey?: string): string => {
+    return apiKey && apiKey.trim().length > 0 ? apiKey : API_KEY;
 };
 
-/**
- * Strips any hidden or non-ASCII characters that cause header rejection.
- */
-const sanitizeHeader = (str: string | undefined | null): string => {
-    if (!str) return "";
-    return String(str).replace(/[^\x20-\x7E]/g, "").trim();
-};
+// Global default client (using env key)
+const defaultClient = new GoogleGenAI({ apiKey: API_KEY });
 
-export const getAISettings = (): AISettings => {
-    if (typeof window !== 'undefined') {
-        const saved = localStorage.getItem('ai_settings');
-        if (saved) {
-            try {
-                const parsed = JSON.parse(saved);
-                return { 
-                    ...DEFAULT_SETTINGS, 
-                    ...parsed, 
-                    models: { ...DEFAULT_SETTINGS.models, ...parsed.models }
-                };
-            } catch (e) {
-                console.warn("Failed to parse AI settings", e);
+// ---------------------------------------------------------------------------
+// TOOL DEFINITIONS
+// ---------------------------------------------------------------------------
+
+const generateImageTool: FunctionDeclaration = {
+    name: 'generate_medical_image',
+    description: 'Generates a medical diagram, anatomical illustration, or visual aid based on a description.',
+    parameters: {
+        type: Type.OBJECT,
+        properties: {
+            prompt: {
+                type: Type.STRING,
+                description: 'Detailed description of the medical visual to generate.'
             }
-        }
+        },
+        required: ['prompt']
     }
-    return DEFAULT_SETTINGS;
 };
 
-/**
- * API Key Hierarchy:
- * 1. Explicit override (from UI testing)
- * 2. Manually saved key in Admin Console
- * 3. Brand spanking new fallback key
- */
-export const getEffectiveApiKey = (overrideKey?: string): string => {
-    const cleanOverride = sanitizeHeader(overrideKey);
-    if (cleanOverride && cleanOverride.length > 20) return cleanOverride;
-    
-    const settings = getAISettings();
-    const manualKey = sanitizeHeader(settings.apiKey);
-    if (manualKey && manualKey.length > 20) return manualKey;
-    
-    return sanitizeHeader(FALLBACK_OPENROUTER_KEY);
+const generateVideoTool: FunctionDeclaration = {
+    name: 'generate_educational_video',
+    description: 'Generates a short educational video or animation explaining a medical concept.',
+    parameters: {
+        type: Type.OBJECT,
+        properties: {
+            topic: {
+                type: Type.STRING,
+                description: 'The medical concept to animate (e.g. "How the heart pumps blood").'
+            }
+        },
+        required: ['topic']
+    }
 };
 
+// ---------------------------------------------------------------------------
+// CORE SERVICES
+// ---------------------------------------------------------------------------
+
 /**
- * Chat with AI (Agnostic OpenRouter Fetch)
+ * Orchestrates the conversation using Gemini 2.5 Flash as the reasoning engine.
+ * Handles RAG (Retrieval) and Tool Execution (Image/Video generation).
  */
 export const chatWithAi = async (
     history: AIMessage[], 
     newMessage: string | null, 
+    imageData?: { data: string, mimeType: string } | null,
     systemInstruction?: string,
     overrideSettings?: AISettings
-) => {
-  const settings = overrideSettings || getAISettings();
-  const apiKey = getEffectiveApiKey(settings.apiKey);
-  const endpoint = (settings.endpoint || "https://openrouter.ai/api/v1").trim();
+): Promise<{ text: string, sources: any[], attachments?: Attachment[] }> => {
+  
+  // 1. Resolve Configuration (Admin overrides take precedence over code defaults)
+  let activeSettings = overrideSettings;
+  if (!activeSettings) {
+      try {
+          activeSettings = await apiClient.settings.getAI();
+      } catch (e) { /* ignore */ }
+  }
+
+  const effectiveKey = getEffectiveApiKey(activeSettings?.apiKey);
+  if (!effectiveKey) throw new Error("Google API Key is missing. Please configure VITE_GOOGLE_API_KEY.");
+
+  const client = (activeSettings?.apiKey && activeSettings.apiKey !== API_KEY) 
+      ? new GoogleGenAI({ apiKey: effectiveKey }) 
+      : defaultClient;
+
+  // 2. RAG Retrieval Step
+  let contextBlock = "";
+  let sources: any[] = [];
+  
+  if (newMessage) {
+      try {
+          const docs = await apiClient.knowledge.search(newMessage, 2);
+          if (docs.length > 0) {
+              contextBlock = `\n[PRACTICE KNOWLEDGE BASE]:\n${docs.map(d => `- ${d.text} (Source: ${d.source})`).join('\n')}\n`;
+              sources = docs.map(d => ({ title: d.source, uri: '#' }));
+          }
+      } catch (e) {
+          console.warn("RAG Retrieval failed:", e);
+      }
+  }
+
+  // 3. Build System Prompt
+  let finalInstruction = systemInstruction || activeSettings?.systemInstruction || "";
+  
+  if (!finalInstruction) {
+      const practice = await apiClient.practice.get();
+      finalInstruction = `You are ${practice.aiName}, an advanced medical assistant for ${practice.name}.
+      Identity: ${practice.aiBio}
+      Practice Info: ${practice.phone}, ${practice.email}, ${practice.address}. 
+      Hours: ${practice.workingHours}.
+      
+      Capabilities:
+      - Answer questions using the Knowledge Base.
+      - Generate medical diagrams (use generate_medical_image).
+      - Create educational videos (use generate_educational_video).
+      
+      ${contextBlock}
+      
+      Rules: 
+      - Always disclaim that you are an AI and not a doctor. 
+      - If specific medical advice is asked, recommend booking an appointment.
+      - Be concise and professional.`;
+  }
+
+  // 4. Construct Message History
+  const contents = history.map(msg => {
+      // Map existing attachments in history to multimodal parts if needed, 
+      // but for now we mainly map text. Simplification for MVP.
+      return {
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content || '' }]
+      };
+  });
+  
+  if (newMessage || imageData) {
+      const parts: any[] = [];
+      if (newMessage) parts.push({ text: newMessage });
+      if (imageData) {
+          // Extract base64 if it has prefix
+          const base64Data = imageData.data.includes(',') 
+              ? imageData.data.split(',')[1] 
+              : imageData.data;
+              
+          parts.push({
+              inlineData: {
+                  mimeType: imageData.mimeType,
+                  data: base64Data
+              }
+          });
+      }
+      contents.push({ role: 'user', parts });
+  }
 
   try {
-    if (!apiKey) {
-        throw new Error("API Key is missing. Please configure it in the Admin Console.");
-    }
-
-    const messages = [];
-    if (systemInstruction) {
-        messages.push({ role: "system", content: systemInstruction });
-    }
-    
-    history.forEach(msg => {
-        if (msg.role === 'user' || msg.role === 'assistant') {
-            messages.push({ role: msg.role, content: msg.content || '' });
+    // 5. Call Gemini 2.5 Flash
+    const response = await client.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: contents,
+        config: {
+            systemInstruction: finalInstruction,
+            tools: [{ functionDeclarations: [generateImageTool, generateVideoTool] }],
+            temperature: 0.7,
         }
     });
 
-    if (newMessage) {
-        messages.push({ role: "user", content: newMessage });
-    }
+    const result = response;
+    let replyText = result.text || "";
+    let attachments: Attachment[] = [];
 
-    const payload = {
-        model: settings.models.chat || 'nex-agi/deepseek-v3.1-nex-n1:free',
-        messages: messages,
-        temperature: 0.7,
-        top_p: 1,
-        repetition_penalty: 1
-    };
-
-    const baseUrl = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
-    const url = `${baseUrl}/chat/completions`;
-    
-    const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-            "HTTP-Referer": typeof window !== 'undefined' ? window.location.origin : "https://practizone.local",
-            "X-Title": "PractiZone Medical PRM"
-        },
-        body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-        let errorMessage = "Unknown API Error";
-        try {
-            const errorJson = await response.json();
-            if (errorJson.error) {
-                errorMessage = typeof errorJson.error === 'string' 
-                    ? errorJson.error 
-                    : (errorJson.error.message || JSON.stringify(errorJson.error));
-            } else if (errorJson.message) {
-                errorMessage = errorJson.message;
+    // 6. Handle Function Calls (Tools)
+    const functionCalls = result.functionCalls;
+    if (functionCalls && functionCalls.length > 0) {
+        for (const call of functionCalls) {
+            if (call.name === 'generate_medical_image') {
+                const prompt = (call.args as any).prompt;
+                replyText += `\n\n[Generating image for: "${prompt}"...]`;
+                const image = await generateImage(prompt);
+                if (image) attachments.push(image);
             }
-        } catch (e) {
-            errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+            if (call.name === 'generate_educational_video') {
+                const topic = (call.args as any).topic;
+                replyText += `\n\n[Generating video for: "${topic}"...]`;
+                const video = await generateMedicalVideo(topic);
+                if (video) attachments.push(video);
+            }
         }
-
-        if (response.status === 401) {
-            throw new Error(`Authentication Failed: ${errorMessage}. The API Key may be invalid or missing credits.`);
-        }
-        throw new Error(`AI Provider Error (${response.status}): ${errorMessage}`);
     }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "No response content.";
-    const reasoning = data.choices?.[0]?.message?.reasoning_content || null;
-
-    return {
-        text: content,
-        sources: [], 
-        reasoning_details: reasoning ? { text: reasoning } : null
+    return { 
+        text: replyText, 
+        sources: sources,
+        attachments: attachments
     };
 
   } catch (error: any) {
-    const finalMsg = error.message || String(error);
-    console.error("AI_CHAT_FAILURE:", finalMsg);
-    throw new Error(finalMsg);
+    console.error("AI Service Error:", error);
+    throw new Error(error.message || "AI Service unavailable.");
   }
 };
 
-export const generateEmbedding = async (text: string): Promise<number[] | null> => {
-    return new Array(768).fill(0).map(() => Math.random());
+/**
+ * Generates an image using Gemini 2.5 Flash Image model.
+ */
+export const generateImage = async (prompt: string): Promise<Attachment | null> => {
+    try {
+        const response = await defaultClient.models.generateContent({
+            model: 'gemini-2.5-flash-image',
+            contents: {
+                parts: [{ text: prompt }]
+            },
+            config: {
+                imageConfig: {
+                    aspectRatio: "1:1",
+                }
+            }
+        });
+
+        // Extract image from response parts
+        if (response.candidates?.[0]?.content?.parts) {
+            for (const part of response.candidates[0].content.parts) {
+                if (part.inlineData && part.inlineData.data) {
+                    return {
+                        type: 'image',
+                        url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`
+                    };
+                }
+            }
+        }
+        return null;
+    } catch (e) {
+        console.error("Image Generation Failed:", e);
+        return null;
+    }
 };
 
-export const generateImage = async (prompt: string) => null;
-export const generateMedicalVideo = async (prompt: string) => null;
-export const transcribeAudio = async (base64Data: string, mimeType: string) => "Transcription unavailable.";
+/**
+ * Generates a video using Veo (Preview).
+ */
+export const generateMedicalVideo = async (prompt: string): Promise<Attachment | null> => {
+    try {
+        let operation = await defaultClient.models.generateVideos({
+            model: 'veo-3.1-fast-generate-preview',
+            prompt: `Educational medical animation: ${prompt}. Photorealistic, clear, high quality.`,
+            config: {
+                numberOfVideos: 1,
+                resolution: '720p',
+                aspectRatio: '16:9'
+            }
+        });
+
+        // Polling loop for video generation
+        let retries = 0;
+        while (!operation.done && retries < 20) { // Max 20 attempts (~2 mins)
+            await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s
+            operation = await defaultClient.operations.getVideosOperation({ operation: operation });
+            retries++;
+        }
+
+        const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
+        if (videoUri) {
+            const fetchUrl = `${videoUri}&key=${API_KEY}`;
+            return {
+                type: 'video',
+                url: fetchUrl
+            };
+        }
+        return null;
+    } catch (e) {
+        console.error("Video Generation Failed:", e);
+        return null;
+    }
+};
+
+export const generateEmbedding = generateEmbeddingUtil;

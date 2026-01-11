@@ -4,17 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  * 
  * 🗄️ PRACTIZONE LOCAL DATABASE ENGINE
- * Technology: IndexedDB (Native Browser Database)
- * Purpose: Persistent storage for Patients, Appointments, and Large Files (Images/PDFs).
  */
 
 const DB_NAME = 'PRACTIZONE_DB_LIVE';
-const DB_VERSION = 5; // Bumped to ensure 'content' store is created
-
-export interface DBMetadata {
-    createdAt: number;
-    updatedAt: number;
-}
+const DB_VERSION = 7; // Bumped for chats store
 
 export class LocalDatabase {
     private db: IDBDatabase | null = null;
@@ -33,41 +26,28 @@ export class LocalDatabase {
             request.onupgradeneeded = (event) => {
                 const db = (event.target as IDBOpenDBRequest).result;
                 
-                // 1. Users (Patients, Admins)
-                if (!db.objectStoreNames.contains('users')) {
-                    db.createObjectStore('users', { keyPath: 'id' });
-                }
+                const stores = [
+                    { name: 'users', key: 'id' },
+                    { name: 'appointments', key: 'id', indexes: ['patientId', 'date'] },
+                    { name: 'documents', key: 'id', indexes: ['patientId'] },
+                    { name: 'content', key: 'key' },
+                    { name: 'suppliers', key: 'id' },
+                    { name: 'logs', key: 'id', auto: true },
+                    { name: 'vectors', key: 'id' },
+                    { name: 'services', key: 'id' },
+                    { name: 'doctors', key: 'id' },
+                    { name: 'config', key: 'key' },
+                    { name: 'chats', key: 'id' } // New Store for Chat Sessions
+                ];
 
-                // 2. Appointments
-                if (!db.objectStoreNames.contains('appointments')) {
-                    const store = db.createObjectStore('appointments', { keyPath: 'id' });
-                    store.createIndex('patientId', 'patientId', { unique: false });
-                    store.createIndex('date', 'date', { unique: false });
-                }
-
-                // 3. Documents (Patient Uploads - Large Files)
-                if (!db.objectStoreNames.contains('documents')) {
-                    const store = db.createObjectStore('documents', { keyPath: 'id' });
-                    store.createIndex('patientId', 'patientId', { unique: false });
-                }
-
-                // 4. Content (CMS Images for Branding)
-                if (!db.objectStoreNames.contains('content')) {
-                    db.createObjectStore('content', { keyPath: 'key' });
-                }
-
-                // 5. Suppliers
-                if (!db.objectStoreNames.contains('suppliers')) {
-                    db.createObjectStore('suppliers', { keyPath: 'id' });
-                }
-
-                // 6. Logs & Vector Embeddings
-                if (!db.objectStoreNames.contains('logs')) {
-                    db.createObjectStore('logs', { keyPath: 'id', autoIncrement: true });
-                }
-                if (!db.objectStoreNames.contains('vectors')) {
-                    db.createObjectStore('vectors', { keyPath: 'id' });
-                }
+                stores.forEach(s => {
+                    if (!db.objectStoreNames.contains(s.name)) {
+                        const store = db.createObjectStore(s.name, { keyPath: s.key, autoIncrement: s.auto || false });
+                        if (s.indexes) {
+                            s.indexes.forEach(idx => store.createIndex(idx, idx, { unique: false }));
+                        }
+                    }
+                });
             };
 
             request.onsuccess = (event) => {
@@ -76,15 +56,12 @@ export class LocalDatabase {
             };
 
             request.onerror = (event) => {
-                console.error("Database connection failed", (event.target as IDBOpenDBRequest).error);
                 reject((event.target as IDBOpenDBRequest).error);
             };
         });
 
         return this.initPromise;
     }
-
-    // --- GENERIC CRUD OPERATIONS ---
 
     async getAll<T>(storeName: string): Promise<T[]> {
         const db = await this.connect();
@@ -130,8 +107,6 @@ export class LocalDatabase {
         });
     }
 
-    // --- SPECIALIZED QUERY OPERATIONS ---
-
     async getByIndex<T>(storeName: string, indexName: string, value: any): Promise<T[]> {
         const db = await this.connect();
         return new Promise((resolve, reject) => {
@@ -144,28 +119,21 @@ export class LocalDatabase {
         });
     }
 
-    // --- SYSTEM OPERATIONS ---
-
     async exportDump(): Promise<Record<string, any[]>> {
         const db = await this.connect();
         const dump: Record<string, any[]> = {};
         const stores = Array.from(db.objectStoreNames);
-        
-        for (const store of stores) {
-            dump[store] = await this.getAll(store);
-        }
+        for (const store of stores) dump[store] = await this.getAll(store);
         return dump;
     }
 
     async importDump(data: Record<string, any[]>) {
         const db = await this.connect();
-        const stores = Object.keys(data);
-        
-        for (const storeName of stores) {
+        for (const storeName of Object.keys(data)) {
             if (db.objectStoreNames.contains(storeName)) {
                 const transaction = db.transaction(storeName, 'readwrite');
                 const store = transaction.objectStore(storeName);
-                store.clear(); // Wipe existing
+                store.clear(); 
                 data[storeName].forEach(item => store.add(item));
             }
         }

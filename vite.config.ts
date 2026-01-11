@@ -8,7 +8,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default defineConfig({
-  // ESSENTIAL FOR TERMUX: Uses relative paths for assets so app works in any folder depth
   base: './', 
   plugins: [react()],
   resolve: {
@@ -18,25 +17,23 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    host: true, // Listen on 0.0.0.0 (Required for accessing from Android Chrome)
-    hmr: {
-        // Ensures Hot Module Replacement works when accessed via IP
-        clientPort: 3000 
-    },
-    watch: {
-      // ESSENTIAL FOR TERMUX: Android FS doesn't always send change events. Polling fixes this.
-      usePolling: true,
-      interval: 100,
-    }
+    open: true, // Auto open on laptop
   },
   preview: {
     port: 3000,
-    host: true,
   },
   build: {
     outDir: 'dist',
     emptyOutDir: true,
-    // Prevents warnings for large vendor chunks
     chunkSizeWarningLimit: 1600,
+    rollupOptions: {
+        output: {
+            manualChunks: {
+                vendor: ['react', 'react-dom'],
+                ui: ['lucide-react'],
+                ai: ['@google/genai']
+            }
+        }
+    }
   }
 });

@@ -64,7 +64,7 @@ const DeveloperConsole: React.FC<DeveloperConsoleProps> = ({ user, onLogout }) =
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `PractiZone_Full_Backup_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+          a.download = `MediCore_Full_Backup_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
           document.body.appendChild(a);
           a.click();
           document.body.removeChild(a);
@@ -155,7 +155,7 @@ const DeveloperConsole: React.FC<DeveloperConsoleProps> = ({ user, onLogout }) =
       <header className="h-14 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between px-6 backdrop-blur-md sticky top-0 z-50">
          <div className="flex items-center gap-3">
              <Terminal className="w-5 h-5 text-green-500" />
-             <span className="font-bold text-slate-100">PractiZone™::DevConsole <span className="text-slate-600 text-xs">v1.0.6</span></span>
+             <span className="font-bold text-slate-100">MediCore™::DevConsole <span className="text-slate-600 text-xs">v1.0.6</span></span>
          </div>
          <div className="flex items-center gap-6">
              <div className="flex items-center gap-2 text-xs">
@@ -273,76 +273,67 @@ const DeveloperConsole: React.FC<DeveloperConsoleProps> = ({ user, onLogout }) =
                                 <Download className="w-5 h-5 text-blue-400" /> Export Data (Backup)
                             </h3>
                             <p className="text-slate-400 text-sm mb-6">
-                                Download a full JSON dump of the <strong>IndexedDB</strong> and <strong>LocalStorage</strong>.
-                                <br/>Includes: Patients, Appointments, Logs, and CMS Images.
+                                Download a full JSON dump of the <strong>IndexedDB</strong> and <strong>LocalStorage</strong> configurations.
+                                Useful for migrations or debugging.
                             </p>
                             <button 
                                 onClick={handleBackup}
                                 disabled={isProcessing}
-                                className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                             >
-                                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                                {isProcessing ? 'Packaging Data...' : 'Download Full Backup'}
+                                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Download Backup
                             </button>
                         </div>
 
                         {/* Restore Card */}
                         <div className="bg-slate-900 border border-slate-800 p-6 rounded-lg">
                             <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                                <Upload className="w-5 h-5 text-green-400" /> Import Data (Restore)
+                                <Upload className="w-5 h-5 text-red-400" /> Restore System
                             </h3>
                             <p className="text-slate-400 text-sm mb-6">
-                                Upload a previously exported JSON file to restore the database state. 
-                                <br/><span className="text-red-400 font-bold">Warning: This will overwrite current data.</span>
+                                Upload a previously generated backup JSON. 
+                                <span className="text-red-400 block mt-1 font-bold">⚠ WARNING: This will overwrite ALL current data.</span>
                             </p>
-                            <input 
-                                type="file" 
-                                ref={fileInputRef} 
-                                onChange={handleRestore}
-                                className="hidden" 
-                                accept=".json"
-                            />
                             <button 
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={isProcessing}
-                                className="w-full py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 border border-slate-600 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                                className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 border border-slate-700"
                             >
-                                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                {isProcessing ? 'Restoring System...' : 'Select Backup File'}
+                                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />} Select Backup File
                             </button>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                className="hidden" 
+                                accept=".json" 
+                                onChange={handleRestore}
+                            />
                         </div>
                     </div>
 
+                    {/* Status Message */}
                     {dbStatus && (
-                        <div className={`p-4 rounded-lg flex items-center gap-3 animate-in fade-in ${
-                            dbStatus.type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 
-                            dbStatus.type === 'error' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                            'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                        <div className={`p-4 rounded-lg flex items-start gap-3 border ${
+                            dbStatus.type === 'success' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 
+                            dbStatus.type === 'error' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 
+                            'bg-blue-500/10 text-blue-400 border-blue-500/20'
                         }`}>
-                            {dbStatus.type === 'success' ? <CheckCircle className="w-5 h-5" /> : 
-                             dbStatus.type === 'error' ? <AlertTriangle className="w-5 h-5" /> :
-                             <Activity className="w-5 h-5" />}
-                            <span className="font-bold">{dbStatus.msg}</span>
+                            {dbStatus.type === 'success' ? <CheckCircle className="w-5 h-5 shrink-0" /> : <AlertTriangle className="w-5 h-5 shrink-0" />}
+                            <span className="text-sm font-bold">{dbStatus.msg}</span>
                         </div>
                     )}
                 </div>
             )}
 
             {activeTab === 'logs' && (
-                <div className="bg-slate-950 rounded-lg border border-slate-800 h-full flex flex-col">
-                    <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                        <div className="text-sm font-bold text-slate-300">Live Client Logs</div>
-                        <div className="flex gap-2">
-                             <span className="w-3 h-3 bg-red-500 rounded-full"></span>
-                             <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
-                             <span className="w-3 h-3 bg-green-500 rounded-full"></span>
-                        </div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-4 font-mono text-xs space-y-1">
+                <div className="space-y-6 animate-in fade-in h-full flex flex-col">
+                    <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+                        <Terminal className="w-6 h-6 text-slate-400" /> Real-time Logs
+                    </h2>
+                    <div className="flex-1 bg-black rounded-xl border border-slate-800 p-4 font-mono text-xs overflow-y-auto">
                         {logs.map((log, i) => (
-                            <div key={i} className="hover:bg-white/5 p-1 rounded transition-colors text-slate-400">
-                                <span className="text-slate-600 mr-2">$</span>
-                                {log}
+                            <div key={i} className="mb-1 text-slate-400 border-b border-slate-900 pb-1 last:border-0">
+                                <span className="text-green-500">$</span> {log}
                             </div>
                         ))}
                     </div>

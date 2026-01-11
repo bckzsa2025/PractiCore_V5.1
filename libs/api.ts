@@ -1,105 +1,165 @@
+
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
- * 
- * 🧠 PRACTIZONE™© - API CONTROLLER
- * Acts as the 'Virtual Server', routing requests to the LocalDatabase.
  */
 
-import { User, Appointment, AppointmentCreate, TwilioConfig, AISettings, Supplier } from '../types';
+import { User, Appointment, AppointmentCreate, TwilioConfig, AISettings, Supplier, PracticeConfig, Service, Doctor, AIMessage } from '../types';
 import { db } from './db'; 
-import { generateEmbedding } from '../services/ai';
+import { vectorEngine } from './vectorEngine';
 
-// Brand New OpenRouter Key provided by user
-const OPENROUTER_KEY = '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';
+// Seed Data Defaults - WHITE LABEL
+const DEFAULT_SERVICES: Service[] = [
+  { id: 's1', name: 'General Consultation', category: 'General Care', duration: 30, price: 500, description: 'Standard medical assessment and diagnosis.' },
+  { id: 's2', name: 'Follow-up Visit', category: 'General Care', duration: 15, price: 300, description: 'Review of progress and medication adjustment.' },
+  { id: 's3', name: 'Telehealth Consult', category: 'Telehealth', duration: 20, price: 350, description: 'Remote video consultation via secure portal.' },
+  { id: 's4', name: 'Wellness Screening', category: 'Preventative', duration: 45, price: 850, description: 'Full body checkup including vitals and blood pressure.' }
+];
 
-// Helper: Cosine Similarity for RAG
-function cosineSimilarity(vecA: number[], vecB: number[]): number {
-    let dot = 0, normA = 0, normB = 0;
-    for (let i = 0; i < vecA.length; i++) {
-        dot += vecA[i] * vecB[i];
-        normA += vecA[i] * vecA[i];
-        normB += vecB[i] * vecB[i];
-    }
-    return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+const DEFAULT_DOCTORS: Doctor[] = [
+  { 
+      id: 'd1', 
+      name: 'Dr. Sarah Smith', 
+      specialty: 'Senior Practitioner', 
+      image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300&h=300', 
+      bio: 'A dedicated medical professional with a focus on family health and preventative care. Committed to providing patient-centered treatment plans.' 
+  },
+  { 
+      id: 'd2', 
+      name: 'Dr. John Doe', 
+      specialty: 'General Practitioner', 
+      image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=300&h=300', 
+      bio: 'Experienced in acute care and chronic disease management. Passionate about using technology to improve patient outcomes.' 
+  },
+  { 
+      id: 'ai_assistant', 
+      name: 'Nurse Betty', 
+      specialty: 'AI Medical Support', 
+      image: 'https://cdn-icons-png.flaticon.com/512/4712/4712035.png', 
+      bio: 'Nurse Betty is the advanced AI assistant for MediCore. Always available to help with triage, scheduling, and general medical inquiries.' 
+  }
+];
+
+const DEFAULT_PRACTICE: PracticeConfig = {
+    name: "MediCore Medical Centre",
+    email: "admin@medicore.local",
+    phone: "+27 21 000 0000",
+    address: "123 Wellness Way, Health City, 8000",
+    workingHours: "Mon-Fri: 08:00-17:00 | Sat: 09:00-13:00",
+    emergencyPhone: "10111",
+    aiName: "Nurse Betty",
+    aiBio: "I am Nurse Betty, the virtual assistant for MediCore Medical Centre. I can help with appointments, general inquiries, and symptom triage.",
+    currency: "R"
+};
+
+export interface ChatSession {
+    id: string;
+    title: string;
+    messages: AIMessage[];
+    timestamp: number;
 }
 
 class ApiClient {
-  private token: string | null = localStorage.getItem('access_token');
-  private callSessions: Map<string, { role: string, parts: any[] }[]> = new Map();
-
-  // Expose DB for direct access in DevConsole
   public db = db;
+  private initialized = false;
 
-  setToken(token: string) {
-    this.token = token;
-    localStorage.setItem('access_token', token);
+  constructor() {
+      this.initVectorStore();
   }
 
-  logout() {
-    this.token = null;
-    localStorage.removeItem('access_token');
-    window.location.reload();
+  // Load persistent vectors into memory on boot
+  private async initVectorStore() {
+      if (this.initialized) return;
+      const vectors = await db.getAll<any>('vectors');
+      if (vectors.length > 0) {
+          vectors.forEach(v => vectorEngine.add(v.id, v.text, { source: v.source }));
+      } else {
+          // Index default data
+          vectorEngine.add('default_hours', DEFAULT_PRACTICE.workingHours, { source: 'Practice Hours' });
+          vectorEngine.add('default_address', DEFAULT_PRACTICE.address, { source: 'Location' });
+          vectorEngine.add('default_services', DEFAULT_SERVICES.map(s => s.name).join(', '), { source: 'Services' });
+      }
+      this.initialized = true;
   }
+
+  // --- Practice Config Module ---
+  practice = {
+      get: async (): Promise<PracticeConfig> => {
+          const config = await db.get<{key: string, value: PracticeConfig}>('config', 'practice_info');
+          if (!config) {
+              await db.put('config', { key: 'practice_info', value: DEFAULT_PRACTICE });
+              return DEFAULT_PRACTICE;
+          }
+          return config.value;
+      },
+      update: async (data: PracticeConfig): Promise<void> => {
+          await db.put('config', { key: 'practice_info', value: data });
+          window.dispatchEvent(new Event('practice-config-update'));
+      }
+  };
+
+  // --- Services Module ---
+  services = {
+      list: async (): Promise<Service[]> => {
+          const list = await db.getAll<Service>('services');
+          if (list.length === 0) {
+              for (const s of DEFAULT_SERVICES) await db.put('services', s);
+              return DEFAULT_SERVICES;
+          }
+          return list;
+      },
+      save: async (svc: Service) => db.put('services', svc),
+      delete: async (id: string) => db.delete('services', id)
+  };
+
+  // --- Doctors Module ---
+  doctors = {
+      list: async (): Promise<Doctor[]> => {
+          const list = await db.getAll<Doctor>('doctors');
+          if (list.length === 0) {
+              for (const d of DEFAULT_DOCTORS) await db.put('doctors', d);
+              return DEFAULT_DOCTORS;
+          }
+          return list;
+      },
+      save: async (doc: Doctor) => db.put('doctors', doc),
+      delete: async (id: string) => db.delete('doctors', id)
+  };
 
   // --- Auth Module ---
   auth = {
     login: async (email: string): Promise<User> => {
        const users = await db.getAll<User>('users');
        let user = users.find(u => u.email === email);
-       
        if (!user) {
            const role = email.includes('admin') || email.includes('dev') ? (email.includes('dev') ? 'developer' : 'admin') : 'patient';
-           user = {
-               id: 'u_' + Math.random().toString(36).substr(2, 5),
-               name: email.split('@')[0] || 'User',
-               email: email,
-               role: role,
-               medicalSummary: { conditions: [], allergies: [] }
-           };
+           user = { id: 'u_' + Math.random().toString(36).substr(2, 5), name: email.split('@')[0], email, role, medicalSummary: { conditions: [], allergies: [] } };
            await db.put('users', user);
        }
-       
-       this.setToken("virtual_session_" + Date.now());
+       localStorage.setItem('access_token', "virtual_session_" + Date.now());
        return user;
     }
   };
 
   // --- Appointments Module ---
   appointments = {
-    list: async (patientId?: string): Promise<Appointment[]> => {
-        if (patientId) {
-            return db.getByIndex('appointments', 'patientId', patientId);
-        }
-        return db.getAll('appointments');
-    },
+    list: async (patientId?: string): Promise<Appointment[]> => patientId ? db.getByIndex('appointments', 'patientId', patientId) : db.getAll('appointments'),
     create: async (data: AppointmentCreate): Promise<Appointment> => {
-        const newAppt: Appointment = {
-            id: 'apt_' + Date.now(),
-            ...data,
-            date: data.start, 
-            status: 'confirmed', 
-            type: data.serviceId === 's6' ? 'telehealth' : 'in-person'
-        };
+        const newAppt: Appointment = { id: 'apt_' + Date.now(), ...data, date: data.start, status: 'confirmed', type: data.serviceId === 's6' ? 'telehealth' : 'in-person' };
         await db.put('appointments', newAppt);
         return newAppt;
     }
   };
   
-  // --- Patient Module ---
   patients = {
     get: async (id: string): Promise<User | undefined> => db.get('users', id),
-    update: async (user: User): Promise<User> => {
-        await db.put('users', user);
-        return user;
-    },
+    update: async (user: User): Promise<User> => { await db.put('users', user); return user; },
     bulkCreate: async (patients: User[]): Promise<{success: boolean, count: number}> => {
         for (const p of patients) await db.put('users', p);
         return { success: true, count: patients.length };
     }
   };
 
-  // --- Suppliers Module ---
   suppliers = {
       list: async (): Promise<Supplier[]> => db.getAll('suppliers'),
       bulkCreate: async (suppliers: Supplier[]): Promise<{success: boolean, count: number}> => {
@@ -108,13 +168,10 @@ class ApiClient {
       }
   };
 
-  // --- Documents & Content (Images) Module ---
   content = {
       upload: async (key: string, dataUrl: string): Promise<void> => {
           await db.put('content', { key, value: dataUrl });
-          setTimeout(() => {
-              window.dispatchEvent(new Event('local-cms-update'));
-          }, 100);
+          window.dispatchEvent(new Event('local-cms-update'));
       },
       get: async (key: string): Promise<string | null> => {
           const item = await db.get<{key: string, value: string}>('content', key);
@@ -127,56 +184,54 @@ class ApiClient {
           return new Promise((resolve, reject) => {
               const reader = new FileReader();
               reader.onload = async (e) => {
-                  const dataUrl = e.target?.result;
-                  const doc = {
-                      id: 'doc_' + Date.now(),
-                      patientId,
-                      name: file.name,
-                      type: 'upload',
-                      date: new Date().toLocaleDateString(),
-                      source: 'Portal Upload',
-                      data: dataUrl 
-                  };
+                  const docId = 'doc_' + Date.now();
+                  const doc = { id: docId, patientId, name: file.name, type: 'upload', date: new Date().toLocaleDateString(), source: 'Portal Upload', data: e.target?.result };
                   await db.put('documents', doc);
+                  
+                  // Index for RAG
+                  const indexText = `Document: ${file.name} uploaded by patient ${patientId}. Date: ${doc.date}.`;
+                  await apiClient.knowledge.add(indexText, 'document_upload');
+                  
                   resolve(doc);
               };
-              reader.onerror = reject;
               reader.readAsDataURL(file);
           });
       },
-      list: async (patientId: string): Promise<any[]> => {
-          return db.getByIndex('documents', 'patientId', patientId);
-      }
+      list: async (patientId: string): Promise<any[]> => db.getByIndex('documents', 'patientId', patientId)
   };
 
-  // --- AI Knowledge Base (RAG) ---
   knowledge = {
       add: async (text: string, sourceName: string) => {
-          const embedding = await generateEmbedding(text);
-          const doc = {
-              id: 'vec_' + Date.now(),
-              text,
-              source: sourceName,
-              embedding: embedding || [],
-              timestamp: Date.now()
-          };
+          const id = 'vec_' + Date.now();
+          const doc = { id, text, source: sourceName, timestamp: Date.now() };
+          
+          // Store in DB for persistence
           await db.put('vectors', doc);
+          
+          // Add to In-Memory Engine
+          vectorEngine.add(id, text, { source: sourceName });
+          
           return doc;
       },
-      search: async (query: string, limit = 3) => {
-          const queryEmbedding = await generateEmbedding(query);
-          if (!queryEmbedding) return [];
-          const allDocs = await db.getAll<any>('vectors');
-          const scored = allDocs.map(doc => ({
-              ...doc,
-              score: cosineSimilarity(queryEmbedding, doc.embedding)
+      search: async (query: string, limit = 2) => {
+          // Use the new TF-IDF Vector Engine
+          const results = vectorEngine.search(query, limit);
+          return results.map(r => ({
+              text: r.item.text,
+              source: r.item.metadata.source,
+              score: r.score
           }));
-          scored.sort((a, b) => b.score - a.score);
-          return scored.slice(0, limit);
       }
   };
 
-  // --- Settings ---
+  logs = {
+      add: async (message: string, level: 'info'|'warn'|'error'|'email'|'sms' = 'info') => {
+          const logEntry = { id: Date.now(), timestamp: new Date().toISOString(), message, level };
+          await db.put('logs', logEntry);
+      },
+      list: async () => db.getAll('logs')
+  };
+
   settings = {
     getTwilioConfig: async (): Promise<TwilioConfig> => {
         const s = localStorage.getItem('twilio_config');
@@ -185,34 +240,60 @@ class ApiClient {
     saveTwilioConfig: async (config: TwilioConfig) => localStorage.setItem('twilio_config', JSON.stringify(config)),
     getAI: async (): Promise<AISettings> => {
         const s = localStorage.getItem('ai_settings');
-        return s ? JSON.parse(s) : { 
-            provider: 'openrouter', 
-            apiKey: '', // Use fallback logic in ai.ts
-            models: { 
-                chat: 'nex-agi/deepseek-v3.1-nex-n1:free', 
-            } 
-        };
+        return s ? JSON.parse(s) : { provider: 'openrouter', apiKey: '', models: { chat: 'nex-agi/deepseek-v3.1-nex-n1:free' } };
     },
     saveAI: async (settings: AISettings) => localStorage.setItem('ai_settings', JSON.stringify(settings))
   };
 
-  // --- Telephony Webhook Simulator ---
+  // --- Chat Sessions Module ---
+  chats = {
+      list: async (): Promise<ChatSession[]> => {
+          const sessions = await db.getAll<ChatSession>('chats');
+          return sessions.sort((a, b) => b.timestamp - a.timestamp);
+      },
+      get: async (id: string): Promise<ChatSession | undefined> => {
+          return db.get<ChatSession>('chats', id);
+      },
+      save: async (session: ChatSession): Promise<ChatSession> => {
+          return db.put('chats', session);
+      },
+      delete: async (id: string): Promise<void> => {
+          return db.delete('chats', id);
+      }
+  };
+
   webhooks = {
     twilio: {
       voice: async (transcript: string) => {
-        const history = this.callSessions.get('demo') || [];
-        history.push({ role: 'user', parts: [{ text: transcript }] });
+        const practice = await db.get<{key: string, value: PracticeConfig}>('config', 'practice_info');
+        const name = practice?.value?.name || "the Medical Practice";
+        const aiName = practice?.value?.aiName || "Nurse Betty";
         
-        try {
-            const text = "Processing voice input via OpenRouter..."; 
-            history.push({ role: 'model', parts: [{ text }] });
-            this.callSessions.set('demo', history);
-            return `<?xml version="1.0" encoding="UTF-8"?><Response><Say>${text}</Say></Response>`;
-        } catch(e) {
-            return `<?xml version="1.0"?><Response><Say>System error.</Say></Response>`;
+        // Log the call interaction
+        await apiClient.logs.add(`Incoming Voice Call: "${transcript}"`, 'info');
+
+        // Context-Aware Response Logic
+        // 1. Search knowledge base
+        const results = vectorEngine.search(transcript, 1);
+        let infoSnippet = "";
+        
+        if (results.length > 0 && results[0].score > 0.1) {
+            infoSnippet = ` I found this info: ${results[0].item.text}.`;
         }
-      },
-      resetSession: () => this.callSessions.delete('demo')
+
+        // 2. Construct Response
+        let text = `Hello, this is ${aiName} at ${name}.`;
+        
+        if (transcript.toLowerCase().includes('appointment') || transcript.toLowerCase().includes('book')) {
+            text += ` I can help you book an appointment. Please visit our website or hold for a receptionist.${infoSnippet}`;
+        } else if (infoSnippet) {
+            text += infoSnippet + " Is there anything else?";
+        } else {
+            text += ` I heard you say: "${transcript}". One moment while I check our records.`;
+        }
+
+        return `<?xml version="1.0" encoding="UTF-8"?><Response><Say>${text}</Say></Response>`;
+      }
     }
   };
 }

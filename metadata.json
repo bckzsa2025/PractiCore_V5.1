@@ -1,5 +1,5 @@
 {
-  "name": "PractiZone_V5.1",
+  "name": "MediCore_V1.0",
   "description": "Standalone Practice Management System with embedded AI and virtual backend logic.",
   "requestFramePermissions": [
     "microphone",

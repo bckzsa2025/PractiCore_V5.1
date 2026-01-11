@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import { Service, Doctor, Appointment, User } from "../types";
+import { apiClient } from "../libs/api";
 
 // Updated Pricing Structure per Spec
 export const SERVICES: Service[] = [
@@ -60,21 +61,21 @@ export const SERVICES: Service[] = [
 export const DOCTORS: Doctor[] = [
   { 
     id: 'd1', 
-    name: 'Dr. Beate Setzer', 
-    specialty: 'General Practitioner (MBChB Wits)', 
+    name: 'Dr. Sarah Smith', 
+    specialty: 'Senior Practitioner', 
     image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=300&h=300',
-    bio: 'With over 30 years of clinical experience, Dr. Setzer provides comprehensive, compassionate family healthcare. She focuses on accurate diagnosis, chronic disease management, and preventative wellness for all ages.'
+    bio: 'A dedicated medical professional with a focus on family health and preventative care. Committed to providing patient-centered treatment plans.'
   }, 
   { 
     id: 'ai_assistant', 
-    name: 'Nurse Beate-Ai', 
+    name: 'Nurse Betty', 
     specialty: 'Online Medical Assistant (AI)', 
     image: 'https://cdn-icons-png.flaticon.com/512/4712/4712035.png',
-    bio: 'Nurse Beate-Ai is the practice’s dedicated digital assistant, powered by advanced artificial intelligence. Available 24/7, she facilitates appointment bookings, provides general medical information, and assists with administrative triage. Please Note: Nurse Beate-Ai is a software entity, not a human being. She does not diagnose conditions, prescribe medication, or replace the professional judgment of Dr. Setzer. She is here to ensure you have constant access to support and information.'
+    bio: 'Nurse Betty is the advanced AI assistant for MediCore. Always available to help with triage, scheduling, and general medical inquiries.'
   }, 
 ];
 
-const STORAGE_KEY_APPTS = 'dr_setzer_appointments';
+const STORAGE_KEY_APPTS = 'medicore_appointments';
 
 // Mock API Functions
 export const getAvailableSlots = (date: Date, doctorId: string): string[] => {
@@ -85,22 +86,30 @@ export const getAvailableSlots = (date: Date, doctorId: string): string[] => {
 };
 
 export const saveAppointment = async (appt: Omit<Appointment, 'id'>): Promise<Appointment> => {
-  const newAppt: Appointment = {
-    ...appt,
-    id: Math.random().toString(36).substr(2, 9),
-  };
-  const existing = getAppointments();
-  const updated = [...existing, newAppt];
-  localStorage.setItem(STORAGE_KEY_APPTS, JSON.stringify(updated));
-  await new Promise(resolve => setTimeout(resolve, 800));
-  return newAppt;
+  // Use the central API client to save, ensuring it hits IndexedDB
+  // Mapping the loose "Omit" type to the strict AppointmentCreate type is handled here loosely for the mock
+  return apiClient.appointments.create({
+      patientId: appt.patientId,
+      doctorId: appt.doctorId,
+      serviceId: appt.serviceId,
+      start: appt.date,
+      reason: appt.notes || "Web Booking",
+      contactMethod: "email"
+  });
 };
 
 export const sendConfirmationEmail = async (email: string, details: any): Promise<void> => {
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise(resolve => setTimeout(resolve, 800));
+  
+  // Log to Persistent DB
+  await apiClient.logs.add(
+      `📧 EMAIL SENT to ${email} | Subject: Booking Confirmed | Content: ${JSON.stringify(details)}`, 
+      'info'
+  );
+  
   console.group("📧 [EMAIL SERVICE] Sending Confirmation");
   console.log(`To: ${email}`);
-  console.log("Subject: Appointment Confirmation - Dr. Beate Setzer");
+  console.log("Subject: Appointment Confirmation - MediCore");
   console.log(JSON.stringify(details, null, 2));
   console.groupEnd();
 };
@@ -115,16 +124,5 @@ export const getAppointmentsForPatient = (patientId: string): Appointment[] => {
 };
 
 export const loginUser = async (email: string): Promise<User> => {
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  return {
-    id: 'p_12345',
-    name: 'Alex Thompson',
-    email: email,
-    role: 'patient',
-    phone: '+27 72 555 1234',
-    medicalSummary: {
-      allergies: ['Penicillin', 'Peanuts'],
-      conditions: ['Mild Asthma']
-    }
-  };
+  return apiClient.auth.login(email);
 };

@@ -1,15 +1,15 @@
 
 {
-  "name": "PractiZone - Dr. Beate Setzer",
-  "short_name": "Dr. Setzer",
-  "id": "dr-setzer-practizone-v1",
+  "name": "MediCore Practice Manager",
+  "short_name": "MediCore",
+  "id": "medicore-mpm-v1",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f8fafc",
   "theme_color": "#1F6E6C",
   "scope": "/",
   "orientation": "portrait-primary",
-  "description": "Offline-capable Practice Management System for Dr. Beate Setzer. Manage appointments, patients, and AI consultations securely.",
+  "description": "Professional Medical Practice Management System powered by SA-iLabs.",
   "categories": ["medical", "productivity", "health"],
   "icons": [
     {

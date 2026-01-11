@@ -55,7 +55,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 Staff
             </button>
             <button 
-                onClick={() => { setMode('developer'); setEmail('dev@practizone.system'); setPassword('sudo'); }}
+                onClick={() => { setMode('developer'); setEmail('dev@medicore.system'); setPassword('sudo'); }}
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1 ${mode === 'developer' ? 'bg-slate-800 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
             >
                 <ShieldAlert className="w-3 h-3" /> Dev
@@ -63,7 +63,7 @@ const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         </div>
 
         <h2 className="text-3xl font-display font-bold text-slate-900">
-          {mode === 'patient' ? 'Patient Portal' : mode === 'staff' ? 'Staff Login' : 'Developer Console'}
+          {mode === 'patient' ? 'MediCore Portal' : mode === 'staff' ? 'Staff Login' : 'Developer Console'}
         </h2>
         <p className="mt-2 text-sm text-slate-600">
           {mode === 'patient' && <>Or <button className="font-bold text-primary hover:text-blue-500">register for a new profile</button></>}

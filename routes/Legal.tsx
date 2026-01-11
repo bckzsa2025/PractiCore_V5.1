@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ShieldCheck, Scale, AlertTriangle, FileText, Globe, Check, Bot, Lock, Database, UserCheck, HeartPulse, ShieldAlert, ZapOff } from 'lucide-react';
 import Header from '../components/ui/Header';
@@ -33,7 +34,7 @@ const Legal: React.FC<LegalProps> = ({ onLoginClick, onHomeClick }) => {
                   <ShieldCheck className="w-4 h-4" /> Compliance & Governance
               </div>
               <h1 className="text-3xl font-display font-bold">Legal Documentation</h1>
-              <p className="text-slate-400 mt-2">Transparency, terms of use, and regulatory information for Dr. Beate Setzer Practice.</p>
+              <p className="text-slate-400 mt-2">Transparency, terms of use, and regulatory information for MediCore.</p>
           </div>
       </div>
 
@@ -70,10 +71,10 @@ const Legal: React.FC<LegalProps> = ({ onLoginClick, onHomeClick }) => {
                   {activeTab === 'tos' && (
                       <div className="prose prose-slate max-w-none text-sm">
                           <DocHeader title="Terms of Service" version="1.2.0" updated="January 20, 2025" />
-                          <p>Welcome to the Dr. Beate Setzer Multiverse Web App ("PractiZone"). By accessing or using our Service, you agree to be bound by these Terms.</p>
+                          <p>Welcome to the MediCore Practice Management System ("MediCore"). By accessing or using our Service, you agree to be bound by these Terms.</p>
                           
                           <h4>1. Use of Services</h4>
-                          <p>You may use our Services only if you can form a binding contract with us, and only in compliance with these Terms and all applicable laws. When you create your PractiZone account, you must provide us with accurate and complete information.</p>
+                          <p>You may use our Services only if you can form a binding contract with us, and only in compliance with these Terms and all applicable laws. When you create your MediCore account, you must provide us with accurate and complete information.</p>
                           
                           <h4>2. Patient Responsibilities</h4>
                           <p>You agree to provide accurate medical history and attend scheduled appointments. Cancellation fees may apply if notice is not given within 24 hours.</p>
@@ -101,19 +102,19 @@ const Legal: React.FC<LegalProps> = ({ onLoginClick, onHomeClick }) => {
                           <p>The contents of this website, including text, graphics, images, and other material contained on the website ("Content") are for informational purposes only. The Content is not intended to be a substitute for professional medical advice, diagnosis, or treatment.</p>
                           
                           <h4>2. Doctor-Patient Relationship</h4>
-                          <p>Use of this website does not create a doctor-patient relationship. Such a relationship is established only after an in-person consultation or a formal telehealth session with Dr. Beate Setzer.</p>
+                          <p>Use of this website does not create a doctor-patient relationship. Such a relationship is established only after an in-person consultation or a formal telehealth session with a qualified practitioner.</p>
                       </div>
                   )}
 
                   {activeTab === 'ai_disclaimer' && (
                       <div className="prose prose-slate max-w-none text-sm">
-                          <DocHeader title="Nurse🧠Beate™ AI Usage Policy" version="2.2.0" updated="February 10, 2025" />
+                          <DocHeader title="Nurse Betty AI Usage Policy" version="2.2.0" updated="February 10, 2025" />
                           
                           <div className="flex items-start gap-4 bg-cyan-50 border border-cyan-200 p-6 rounded-2xl mb-8">
                               <Bot className="w-12 h-12 text-cyan-600 shrink-0" />
                               <div>
                                   <h4 className="text-cyan-900 font-bold m-0 text-lg">AI Assistant Notice</h4>
-                                  <p className="text-cyan-800 m-0 text-sm mt-1 leading-relaxed">Nurse🧠Beate™ is an advanced Large Language Model (LLM) designed for administrative support and patient education. It is an automated system managed by SA-iLabs™.</p>
+                                  <p className="text-cyan-800 m-0 text-sm mt-1 leading-relaxed">Nurse Betty is an advanced Large Language Model (LLM) designed for administrative support and patient education. It is an automated system managed by SA-iLabs™.</p>
                               </div>
                           </div>
 
@@ -143,10 +144,10 @@ const Legal: React.FC<LegalProps> = ({ onLoginClick, onHomeClick }) => {
                           </div>
 
                           <h4>1. Role of the AI Assistant</h4>
-                          <p>Interaction with the Virtual Assistant does not constitute a doctor-patient relationship. Reliance on any information provided by the AI is strictly at your own risk. Always seek the advice of Dr. Beate Setzer or another qualified health provider with any questions you may have regarding a medical condition.</p>
+                          <p>Interaction with Nurse Betty does not constitute a doctor-patient relationship. Reliance on any information provided by the AI is strictly at your own risk. Always seek the advice of a qualified health provider with any questions you may have regarding a medical condition.</p>
 
                           <h4>2. No Liability for Hallucinations</h4>
-                          <p>While we strive to keep the AI's medical knowledge grounded via reputable sources, medical science changes rapidly. The AI may provide outdated or contextually inappropriate information. Dr. Beate Setzer Practice and SA-iLabs™ expressly disclaim all liability for actions taken based on AI responses.</p>
+                          <p>While we strive to keep the AI's medical knowledge grounded via reputable sources, medical science changes rapidly. The AI may provide outdated or contextually inappropriate information. MediCore and SA-iLabs™ expressly disclaim all liability for actions taken based on AI responses.</p>
 
                           <h4>3. Third-Party Processing</h4>
                           <p>We utilize enterprise-grade AI providers (Google Cloud Vertex AI, OpenRouter). By using the chat or voice features, you consent to the transmission of your queries to these secure third-party processors. No personally identifiable health records (PII) are stored permanently by these models.</p>
@@ -159,7 +160,7 @@ const Legal: React.FC<LegalProps> = ({ onLoginClick, onHomeClick }) => {
                   {activeTab === 'waiver' && (
                       <div className="prose prose-slate max-w-none text-sm">
                           <DocHeader title="Liability Waiver" version="1.0.0" updated="January 15, 2024" />
-                          <p>By using the telecommunications and AI services provided by Dr. Beate Setzer's practice, you hereby waive certain liabilities.</p>
+                          <p>By using the telecommunications and AI services provided by MediCore, you hereby waive certain liabilities.</p>
                           <h4>1. Technology Failure</h4>
                           <p>We are not liable for any delays or failures in communication caused by internet service providers, power outages, or software bugs.</p>
                           <h4>2. Third-Party Services</h4>
@@ -171,9 +172,8 @@ const Legal: React.FC<LegalProps> = ({ onLoginClick, onHomeClick }) => {
                       <div className="prose prose-slate max-w-none text-sm">
                           <DocHeader title="Professional Licenses" version="1.0.0" updated="January 15, 2024" />
                           <ul className="list-disc pl-5 space-y-2">
-                              <li><strong>HPCSA Registration:</strong> Dr. BC Setzer is registered with the Health Professions Council of South Africa (MP 0313173).</li>
-                              <li><strong>BHF Practice Number:</strong> 1421715</li>
-                              <li><strong>Software License:</strong> PractiZone™ is licensed under a proprietary agreement with SA-iLabs™©.</li>
+                              <li><strong>Registration:</strong> MediCore provides software services to registered Health Professionals.</li>
+                              <li><strong>Software License:</strong> MediCore™ is licensed under a proprietary agreement with SA-iLabs™©.</li>
                               <li><strong>Open Source:</strong> This application utilizes React, Lucide, and other open-source libraries under MIT License.</li>
                           </ul>
                       </div>
